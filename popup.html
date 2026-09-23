@@ -8,7 +8,7 @@
         <title>Cookie Maker</title>
         <style>
             body {
-                width: 400px;
+                width: 800px;
                 padding: 20px;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             }
@@ -195,7 +195,7 @@
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 120px;
+                max-width: 180px;
             }
 
             table.cookie-table th:first-child {
@@ -206,17 +206,29 @@
             table.cookie-table td {
                 padding: 8px;
                 border-bottom: 1px solid #e0e0e0;
-                max-width: 120px;
+                max-width: 180px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 position: relative;
             }
             .truncate {
-                max-width: 150px;
+                max-width: 240px;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+            }
+
+            /* 可点击复制的单元格 */
+            table.cookie-table td.copyable {
+                cursor: pointer;
+                user-select: none;
+            }
+            table.cookie-table td.copyable:hover {
+                background-color: #e8f0fe;
+            }
+            table.cookie-table td.copyable.copied {
+                background-color: #e6f4ea;
             }
         </style>
     </head>
@@ -259,21 +271,22 @@
             <div class="view-switcher">
                 <button
                     id="json-view-btn"
-                    class="secondary active">
+                    class="secondary">
                     JSON视图
                 </button>
                 <button
                     id="table-view-btn"
-                    class="secondary">
+                    class="secondary active">
                     表格视图
                 </button>
             </div>
             <textarea
                 id="cookies-json"
-                placeholder="{}"></textarea>
+                placeholder="{}"
+                style="display: none"></textarea>
             <div
                 id="cookies-table-container"
-                class="table-container">
+                class="table-container active">
                 <table
                     id="cookies-table"
                     class="cookie-table">

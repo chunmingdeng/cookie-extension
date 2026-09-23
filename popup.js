@@ -444,8 +444,8 @@ function updateTableFromJson() {
       checkboxCell.appendChild(checkbox);
       
       // 创建各列单元格
-      const nameCell = createTableCell(cookie.name || '');
-      const valueCell = createTableCell(cookie.value || '', true);
+      const nameCell = createTableCell(cookie.name || '', false, true);
+      const valueCell = createTableCell(cookie.value || '', true, true);
       const domainCell = createTableCell(cookie.domain || '');
       const pathCell = createTableCell(cookie.path || '');
       const expirationCell = createTableCell(formatExpirationDate(cookie.expirationDate));
@@ -481,11 +481,12 @@ function updateTableFromJson() {
  * 创建表格单元格
  * @param {string} content - 单元格内容
  * @param {boolean} isValue - 是否为Cookie值（需要特殊处理）
+ * @param {boolean} copyable - 是否支持点击复制
  * @returns {HTMLElement} - td元素
  */
-function createTableCell(content, isValue = false) {
+function createTableCell(content, isValue = false, copyable = false) {
   const cell = document.createElement('td');
-  
+
   // 如果内容较长，添加截断处理和工具提示
   if (typeof content === 'string' && content.length > 50) {
     const span = document.createElement('span');
@@ -495,14 +496,41 @@ function createTableCell(content, isValue = false) {
     cell.appendChild(span);
   } else {
     cell.textContent = content;
-    
+
     // 为Cookie值添加工具提示
     if (isValue && content) {
       cell.title = content;
     }
   }
-  
+
+  if (copyable && content) {
+    cell.classList.add('copyable');
+    cell.title = content ? `${content}\n点击复制` : '';
+    cell.addEventListener('click', () => copyCellText(cell, content));
+  }
+
   return cell;
+}
+
+/**
+ * 复制单元格文本到剪贴板，并给出反馈
+ * @param {HTMLElement} cell - 被点击的单元格
+ * @param {string} text - 要复制的文本
+ */
+async function copyCellText(cell, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    cell.classList.add('copied');
+    const previousTitle = cell.title;
+    cell.title = '已复制';
+    showMessage('已复制到剪贴板');
+    setTimeout(() => {
+      cell.classList.remove('copied');
+      cell.title = previousTitle;
+    }, 1000);
+  } catch (error) {
+    showMessage(`复制失败: ${error.message}`, false);
+  }
 }
 
 /**
