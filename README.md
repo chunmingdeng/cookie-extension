@@ -8,9 +8,12 @@
 - 向指定URL注入Cookie
 - 保存Cookie集到本地存储
 - 加载已保存的Cookie集
-- 格式化JSON数据
-- 支持JSON视图和表格视图切换
-- 表格视图支持Cookie勾选和筛选
+- 表格视图展示Cookie，支持勾选筛选（默认勾选 `access_token` / `refresh_token`）
+- 表格中「名称」「值」点击即可复制
+- 一键按名称提取并复制Token（默认 `access_token,refresh_token`，可自定义，逗号分隔）
+- 一键复制JSON格式Cookie数据
+- 功能按钮为图标样式，悬浮显示功能说明
+- 输入区两列紧凑布局
 - 自动缓存Cookie数据，切换标签页不丢失
 - 支持跨标签页操作Cookie
 
@@ -30,31 +33,52 @@
 
 ## 使用说明
 
+界面顶部为两列表单，右侧为图标功能按钮（悬浮可查看说明）：
+
+| 区域 | 操作 |
+|------|------|
+| 当前页面URL | ⬇ 提取当前页面Cookie；🔗 加载当前标签URL |
+| 目标URL | ⬆ 向目标URL注入Cookie |
+| 一键复制的Cookie名称 | ⧉ 按名称提取并复制Token |
+| Cookie集名称 | 💾 保存Cookie集；↺ 加载Cookie集 |
+| Cookie数据 | `{}` 一键复制JSON数据 |
+
 ### 基本操作
 1. 点击Chrome浏览器工具栏中的Cookie Maker图标打开扩展面板
 2. 默认会显示当前标签页的URL
-3. **提取Cookie**：点击 "提取当前页面Cookie" 按钮，扩展会自动提取当前页面的所有Cookie
-4. **注入Cookie**：在 "目标URL" 输入框中输入目标网站地址，确保Cookie数据已正确填写，然后点击 "向目标URL注入Cookie" 按钮
-5. **保存Cookie集**：输入Cookie集名称，点击 "保存Cookie集" 按钮
-6. **加载Cookie集**：输入要加载的Cookie集名称，点击 "加载Cookie集" 按钮
-7. **格式化JSON**：点击 "格式化JSON" 按钮，使JSON数据更易于阅读
+3. **提取Cookie**：点击「提取当前页面Cookie」图标，提取当前页面所有Cookie
+4. **注入Cookie**：填写「目标URL」，点击「向目标URL注入Cookie」图标；若表格中有勾选，则只注入勾选项
+5. **保存Cookie集**：输入名称后点击「保存Cookie集」
+6. **加载Cookie集**：输入名称后点击「加载Cookie集」
+7. **复制JSON**：点击「复制JSON数据」图标，将Cookie以格式化JSON写入剪贴板
 
-### 视图切换功能
-1. **JSON视图**：显示原始的JSON格式Cookie数据，支持手动编辑
-2. **表格视图**：以表格形式展示Cookie数据，更直观易读
-   - 表格视图会默认勾选 `access_token` 和 `refresh_token` 类型的Cookie
-   - 在表格视图下，点击 "向目标URL注入Cookie" 只会注入勾选的Cookie
+### 表格视图
+- Cookie以表格展示：名称、值、域名、路径、过期时间、安全、HttpOnly
+- 表格默认勾选 `access_token` 和 `refresh_token`
+- 点击「名称」「值」单元格可直接复制内容
+- 表头复选框可全选/取消全选；注入时按勾选过滤
+
+### 一键复制Token
+1. 在「一键复制的Cookie名称」中填写Cookie名，多个用逗号分隔（默认 `access_token,refresh_token`）
+2. 点击「一键提取复制Token」图标
+3. 剪贴板得到如下格式内容：
+
+```
+access_token:eyJhbGciOiJIUzI1NiJ9...
+refresh_token:efebe277cd5e478e84c073ec8f5eaa28
+```
 
 ### 数据缓存功能
-- 扩展会自动缓存您正在编辑的Cookie数据到 `chrome.storage.local`
+- 扩展会自动缓存Cookie数据到 `chrome.storage.local`
 - 缓存功能在后台脚本(`background.js`)中实现，确保数据持久化
 - 即使关闭或切换标签页后重新打开扩展，之前的数据也能被正确恢复
-- 所有可能修改Cookie数据的操作（提取、加载、格式化、输入）都会自动触发缓存更新
+- 所有可能修改Cookie数据的操作（提取、加载、输入）都会自动触发缓存更新
 
 ### 已保存Cookie集管理
 - 扩展面板下方会显示所有已保存的Cookie集列表
-- 点击 "使用" 按钮可直接加载对应Cookie集
-- 点击 "删除" 按钮可移除不需要的Cookie集
+- 点击 ✓ 可直接加载对应Cookie集
+- 点击 🗑 可移除不需要的Cookie集
+- 点击 ↻ 刷新列表
 
 ## 权限说明
 
@@ -72,19 +96,19 @@
 2. 注入Cookie可能会导致您的账号安全风险，请确保您了解操作的后果
 3. 扩展仅在本地存储Cookie数据，不会上传到任何服务器
 4. 缓存数据存储在浏览器的本地存储中，清除浏览器数据可能会导致缓存丢失
+5. 日常开发推荐使用「加载已解压的扩展程序」安装；自行打包的 `.crx` 可能被Chrome禁用（未上架应用商店）
 
 ## 开发指南
 
 如果您想参与开发或修改此扩展，请按照以下步骤：
 
-1. 确保已安装Node.js和npm
-2. 克隆项目代码
-3. 在项目目录下进行开发
-4. 修改完成后，重新加载扩展进行测试
+1. 克隆项目代码
+2. 在项目目录下修改 `popup.html` / `popup.js` / `background.js`
+3. 在 `chrome://extensions/` 中重新加载扩展进行测试
 
 ## 技术栈
 
 - HTML5
 - CSS3
 - JavaScript
-- Chrome Extension API
+- Chrome Extension API (Manifest V3)

@@ -7,10 +7,24 @@
             content="width=device-width, initial-scale=1.0" />
         <title>Cookie Maker</title>
         <style>
+            * {
+                box-sizing: border-box;
+            }
             body {
                 width: 800px;
-                padding: 20px;
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: visible;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            }
+            /* 页面内容放这里做横向裁切，tooltip 不放这里，避免被裁 */
+            .page {
+                width: 100%;
+                max-width: 100%;
+                padding: 20px;
+                overflow-x: clip;
+                min-width: 0;
             }
             h1 {
                 font-size: 20px;
@@ -20,12 +34,28 @@
             }
             .input-group {
                 margin-bottom: 15px;
+                min-width: 0;
+            }
+            .form-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                gap: 12px 16px;
+                margin-bottom: 15px;
+                min-width: 0;
+            }
+            .form-grid .input-group {
+                margin-bottom: 0;
+                min-width: 0;
             }
             label {
                 display: block;
                 margin-bottom: 5px;
                 font-weight: 500;
                 color: #202124;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
             }
             input[type='text'],
             select,
@@ -42,11 +72,34 @@
                 resize: vertical;
                 font-family: monospace;
             }
-            .button-group {
+            .input-row {
                 display: flex;
-                gap: 10px;
-                margin-bottom: 20px;
-                flex-wrap: wrap;
+                align-items: stretch;
+                gap: 6px;
+                min-width: 0;
+            }
+            .input-row input[type='text'] {
+                flex: 1;
+                min-width: 0;
+                width: 100%;
+            }
+            .input-row-actions {
+                display: flex;
+                align-items: stretch;
+                gap: 4px;
+                flex-shrink: 0;
+            }
+            .toolbar-row {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 10px;
+                min-width: 0;
+            }
+            .toolbar-row label {
+                margin-bottom: 0;
+                flex: 1;
+                min-width: 0;
             }
             button {
                 padding: 8px 16px;
@@ -68,25 +121,92 @@
             button.secondary:hover {
                 background-color: #e8eaed;
             }
-            .cookies-display {
-                border: 1px solid #dadce0;
+
+            /* 图标按钮（提示统一走 JS fixed tooltip，避免 ::after 撑宽/被裁切） */
+            .icon-btn {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                min-width: 38px;
+                height: 38px;
+                padding: 0;
+                border: 1px solid transparent;
                 border-radius: 4px;
-                padding: 10px;
-                max-height: 200px;
-                overflow-y: auto;
-                background-color: #f8f9fa;
-                font-size: 13px;
-                font-family: monospace;
+                background-color: #4285f4;
+                color: #fff;
+                cursor: pointer;
             }
-            .cookie-item {
-                padding: 5px 0;
-                border-bottom: 1px solid #e0e0e0;
+            .icon-btn:hover {
+                background-color: #3367d6;
             }
-            .cookie-item:last-child {
-                border-bottom: none;
+            .icon-btn.secondary {
+                background-color: #f1f3f4;
+                color: #202124;
+                border-color: #dadce0;
             }
-            .cookie-name {
-                font-weight: 500;
+            .icon-btn.secondary:hover {
+                background-color: #e8eaed;
+            }
+            .icon-btn.danger {
+                background-color: #ff4444;
+                color: #fff;
+            }
+            .icon-btn.danger:hover {
+                background-color: #cc0000;
+            }
+            .icon-btn svg {
+                width: 18px;
+                height: 18px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.8;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+            .icon-btn.small {
+                width: 28px;
+                min-width: 28px;
+                height: 28px;
+            }
+            .icon-btn.small svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            /* 即时浮动提示：常驻布局（不用 display:none），避免弹窗里量不到尺寸 */
+            .app-tooltip {
+                position: fixed;
+                left: -9999px;
+                top: -9999px;
+                z-index: 2147483647;
+                max-width: 320px;
+                max-height: 140px;
+                overflow: auto;
+                background: #202124;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 400;
+                line-height: 1.4;
+                padding: 6px 8px;
+                border-radius: 4px;
+                white-space: pre-wrap;
+                word-break: break-all;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+                pointer-events: none;
+                opacity: 0;
+                visibility: hidden;
+            }
+            .app-tooltip.visible {
+                opacity: 1;
+                visibility: visible;
+            }
+            .app-tooltip .app-tooltip-hint {
+                display: block;
+                margin-top: 4px;
+                color: #9aa0a6;
+                white-space: nowrap;
             }
             .message {
                 padding: 10px;
@@ -134,7 +254,8 @@
 
             .saved-cookie-actions {
                 display: flex;
-                gap: 8px;
+                gap: 6px;
+                align-items: center;
             }
 
             .saved-cookie-actions button {
@@ -153,36 +274,20 @@
             }
 
             /* 表格视图样式 */
-            .view-switcher {
-                margin-bottom: 10px;
-                display: flex;
-                gap: 5px;
-            }
-            .view-switcher button {
-                padding: 4px 8px;
-                font-size: 12px;
-                flex: 1;
-            }
-            .view-switcher button.active {
-                background-color: #4285f4;
-                color: white;
-            }
-
             .table-container {
                 border: 1px solid #dadce0;
                 border-radius: 4px;
-                max-height: 200px;
-                overflow-y: auto;
-                display: none;
-            }
-            .table-container.active {
-                display: block;
+                max-height: 240px;
+                max-width: 100%;
+                overflow: auto;
+                min-width: 0;
             }
 
             table.cookie-table {
                 width: 100%;
                 border-collapse: collapse;
                 font-size: 12px;
+                table-layout: fixed;
             }
             table.cookie-table th {
                 background-color: #f8f9fa;
@@ -192,31 +297,20 @@
                 border-bottom: 2px solid #dadce0;
                 position: sticky;
                 top: 0;
+                z-index: 1;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
-                max-width: 180px;
-            }
-
-            table.cookie-table th:first-child {
-                max-width: 40px;
             }
 
             /* 表格单元格样式 - 超出省略和悬浮气泡功能 */
             table.cookie-table td {
                 padding: 8px;
                 border-bottom: 1px solid #e0e0e0;
-                max-width: 180px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 position: relative;
-            }
-            .truncate {
-                max-width: 240px;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
             }
 
             /* 可点击复制的单元格 */
@@ -233,63 +327,188 @@
         </style>
     </head>
     <body>
-        <sectioin style="position: fixed; top: 0px; right: 0px;">
+        <div class="page">
+        <header class="page-header">
             <h1>Cookie Maker</h1>
 
             <!-- 消息提示区域 -->
             <div
                 id="message"
                 class="message"></div>
-        </sectioin>
+        </header>
 
-        <!-- 当前URL和Cookie操作 -->
-        <div class="input-group">
-            <label for="current-url">当前页面URL</label>
-            <input
-                type="text"
-                id="current-url"
-                placeholder="https://example.com" />
+        <!-- 当前URL / 目标URL / Token键 / Cookie集名称：一行两列 -->
+        <div class="form-grid">
+            <div class="input-group">
+                <label for="current-url">当前页面URL</label>
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="current-url"
+                        placeholder="https://example.com" />
+                    <div class="input-row-actions">
+                        <button
+                            type="button"
+                            id="extract-cookies"
+                            class="icon-btn"
+                            data-tooltip="提取当前页面Cookie"
+                            title="提取当前页面Cookie"
+                            aria-label="提取当前页面Cookie">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 3v12" />
+                                <path d="M7 10l5 5 5-5" />
+                                <path d="M5 21h14" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            id="load-url"
+                            class="icon-btn secondary"
+                            data-tooltip="加载当前标签URL"
+                            title="加载当前标签URL"
+                            aria-label="加载当前标签URL">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path
+                                    d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="target-url">目标URL</label>
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="target-url"
+                        placeholder="https://example.com" />
+                    <div class="input-row-actions">
+                        <button
+                            type="button"
+                            id="inject-cookies"
+                            class="icon-btn"
+                            data-tooltip="向目标URL注入Cookie"
+                            title="向目标URL注入Cookie"
+                            aria-label="向目标URL注入Cookie">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 21V9" />
+                                <path d="M7 14l5-5 5 5" />
+                                <path d="M5 3h14" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="token-keys">一键复制的Cookie名称（逗号分隔）</label>
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="token-keys"
+                        value="access_token,refresh_token"
+                        placeholder="access_token,refresh_token" />
+                    <div class="input-row-actions">
+                        <button
+                            type="button"
+                            id="copy-tokens"
+                            class="icon-btn"
+                            data-tooltip="一键提取复制Token"
+                            title="一键提取复制Token"
+                            aria-label="一键提取复制Token">
+                            <svg viewBox="0 0 24 24">
+                                <rect
+                                    x="9"
+                                    y="9"
+                                    width="11"
+                                    height="11"
+                                    rx="2" />
+                                <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="cookie-set-name">Cookie集名称</label>
+                <div class="input-row">
+                    <input
+                        type="text"
+                        id="cookie-set-name"
+                        placeholder="输入名称保存当前Cookie集" />
+                    <div class="input-row-actions">
+                        <button
+                            type="button"
+                            id="save-cookies"
+                            class="icon-btn"
+                            data-tooltip="保存Cookie集"
+                            title="保存Cookie集"
+                            aria-label="保存Cookie集">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                                <path d="M17 21v-8H7v8" />
+                                <path d="M7 3v5h8" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            id="load-saved-cookies"
+                            class="icon-btn secondary"
+                            data-tooltip="加载Cookie集"
+                            title="加载Cookie集"
+                            aria-label="加载Cookie集">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                <path d="M3 4v5h5" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="button-group">
-            <button id="extract-cookies">提取当前页面Cookie</button>
-            <button id="load-url">加载当前标签URL</button>
-        </div>
-
-        <!-- 目标URL输入 -->
+        <!-- Cookie展示区域：仅表格视图 -->
         <div class="input-group">
-            <label for="target-url">目标URL</label>
-            <input
-                type="text"
-                id="target-url"
-                placeholder="https://example.com" />
-        </div>
-
-        <!-- Cookie展示区域 -->
-        <div class="input-group">
-            <label>Cookie数据</label>
-            <div class="view-switcher">
+            <div class="toolbar-row">
+                <label>Cookie数据</label>
                 <button
-                    id="json-view-btn"
-                    class="secondary">
-                    JSON视图
-                </button>
-                <button
-                    id="table-view-btn"
-                    class="secondary active">
-                    表格视图
+                    type="button"
+                    id="copy-json"
+                    class="icon-btn secondary"
+                    data-tooltip="复制JSON数据"
+                    title="复制JSON数据"
+                    aria-label="复制JSON数据">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" />
+                        <path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1" />
+                    </svg>
                 </button>
             </div>
             <textarea
                 id="cookies-json"
                 placeholder="{}"
-                style="display: none"></textarea>
+                hidden></textarea>
             <div
                 id="cookies-table-container"
-                class="table-container active">
+                class="table-container">
                 <table
                     id="cookies-table"
                     class="cookie-table">
+                    <colgroup>
+                        <col style="width: 36px" />
+                        <col style="width: 18%" />
+                        <col style="width: 28%" />
+                        <col style="width: 18%" />
+                        <col style="width: 8%" />
+                        <col style="width: 16%" />
+                        <col style="width: 6%" />
+                        <col style="width: 6%" />
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>
@@ -314,41 +533,21 @@
             </div>
         </div>
 
-        <div class="button-group">
-            <button id="inject-cookies">向目标URL注入Cookie</button>
-            <button
-                id="format-json"
-                class="secondary">
-                格式化JSON
-            </button>
-        </div>
-
-        <!-- 保存和加载Cookie -->
-        <div class="input-group">
-            <label for="cookie-set-name">Cookie集名称</label>
-            <input
-                type="text"
-                id="cookie-set-name"
-                placeholder="输入名称保存当前Cookie集" />
-        </div>
-
-        <div class="button-group">
-            <button id="save-cookies">保存Cookie集</button>
-            <button
-                id="load-saved-cookies"
-                class="secondary">
-                加载Cookie集
-            </button>
-        </div>
-
         <!-- 已保存的Cookie集 -->
         <div class="saved-cookies">
             <div class="saved-cookies-header">
                 <label>已保存的Cookie集</label>
                 <button
+                    type="button"
                     id="refresh-saved-cookies"
-                    class="secondary">
-                    刷新
+                    class="icon-btn secondary small"
+                    data-tooltip="刷新列表"
+                    title="刷新列表"
+                    aria-label="刷新列表">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 12a9 9 0 1 1-3-6.7" />
+                        <path d="M21 3v5h-5" />
+                    </svg>
                 </button>
             </div>
             <div
@@ -356,6 +555,7 @@
                 class="saved-cookies-list">
                 <!-- 已保存的Cookie集将在这里显示 -->
             </div>
+        </div>
         </div>
 
         <script src="popup.js"></script>
